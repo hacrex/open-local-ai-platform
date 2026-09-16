@@ -16,20 +16,17 @@ Run capable AI workloads on your own hardware using Docker Compose. The stack is
 
 ### Knowledge & Documents
 - **Paperless-ngx** — document archive and OCR
-- **Paperless-GPT** — AI-assisted document processing
 - **Open Notebook** — private research/RAG workspace
 - **Blinko** — notes and personal knowledge
 - **Karakeep** — bookmarks and saved web content
 
 ### Infrastructure & Home Lab
 - **Pulse** — infrastructure monitoring and AI-assisted analysis
-- **Home Assistant** — optional AI voice/automation layer
-- **Frigate** — optional local computer-vision layer
 
 ### Coding
+- **code-server** — browser-based VS Code IDE
 - **Open WebUI** for coding chat and model-driven workflows
 - **Continue** or other OpenAI-compatible IDE clients can connect to Ollama
-- Optional coding model presets are documented for Qwen, DeepSeek, Code Llama-compatible, and other Ollama-supported models
 
 ## Architecture
 
@@ -58,7 +55,7 @@ Run capable AI workloads on your own hardware using Docker Compose. The stack is
                  +-----------+  +---------+  +------------+
 
           Optional services: Paperless, Open Notebook, Blinko,
-          Karakeep, Pulse, Home Assistant, Frigate
+          Karakeep, Pulse
 ```
 
 ## Repository layout
@@ -67,8 +64,10 @@ Run capable AI workloads on your own hardware using Docker Compose. The stack is
 open-local-ai-platform/
 ├── README.md
 ├── LICENSE
+├── Makefile
 ├── .env.example
 ├── .gitignore
+├── .editorconfig
 ├── compose/
 │   ├── docker-compose.yml
 │   ├── docker-compose.coding.yml
@@ -84,14 +83,18 @@ open-local-ai-platform/
 │   ├── SECURITY.md
 │   ├── STORAGE.md
 │   ├── OPERATIONS.md
+│   ├── ROADMAP.md
 │   └── TROUBLESHOOTING.md
 ├── scripts/
 │   ├── install.sh
 │   ├── update.sh
 │   ├── backup.sh
 │   └── healthcheck.sh
-└── .github/workflows/
-    └── compose-validate.yml
+├── workspace/
+│   └── README.md
+└── .github/
+    └── workflows/
+        └── compose-validate.yml
 ```
 
 ## Quick start
@@ -109,12 +112,18 @@ cd open-local-ai-platform
 cp .env.example .env
 ```
 
-Review the variables before starting.
+Review the variables in `.env` before starting. All secrets have safe defaults for local use only.
 
 ### 3. Start the core platform
 
 ```bash
 docker compose -f compose/docker-compose.yml up -d
+```
+
+Or use the Makefile:
+
+```bash
+make install
 ```
 
 ### 4. Pull a model
@@ -132,6 +141,28 @@ For coding, see `docs/CODING.md`.
 - Perplexica: `http://localhost:3001`
 - SearXNG: `http://localhost:8080`
 
+## Makefile
+
+Run `make help` to see all available targets:
+
+```
+  up                    Start core services
+  down                  Stop and remove core containers
+  stop                  Stop core containers without removing
+  logs                  Tail core service logs
+  ps                    Show running containers
+  pull                  Pull latest images for core services
+  validate              Validate all compose files
+  coding                Start core + coding overlay
+  productivity          Start core + productivity overlay
+  install               Run the installer
+  update                Pull latest images and recreate containers
+  backup                Back up compose config and env template
+  health                Check health of all services
+  lint                  Lint shell scripts (requires shellcheck)
+  compose-lint          Lint compose files
+```
+
 ## Compose profiles
 
 The repo deliberately separates the platform into layers.
@@ -140,21 +171,68 @@ The repo deliberately separates the platform into layers.
 
 ```bash
 docker compose -f compose/docker-compose.yml up -d
+# or
+make up
 ```
 
 ### Core + coding helper services
 
 ```bash
 docker compose -f compose/docker-compose.yml -f compose/docker-compose.coding.yml up -d
+# or
+make coding
 ```
 
 ### Productivity services
 
 ```bash
 docker compose -f compose/docker-compose.yml -f compose/docker-compose.productivity.yml up -d
+# or
+make productivity
 ```
 
 Run only what your hardware can comfortably support.
+
+## Linux installation
+
+### Prerequisites
+
+```bash
+# Docker Engine (Ubuntu/Debian)
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Add your user to the docker group (logout/login required)
+sudo usermod -aG docker $USER
+```
+
+### NVIDIA GPU support (optional)
+
+```bash
+# Install NVIDIA Container Toolkit
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+### Quick install
+
+```bash
+git clone https://github.com/YOUR_USERNAME/open-local-ai-platform.git
+cd open-local-ai-platform
+make install
+```
 
 ## Minimum hardware
 
@@ -171,12 +249,12 @@ Usable for small quantized models, embeddings, Open WebUI, and lightweight servi
 - 8+ CPU cores
 - 32 GB RAM
 - 1 TB NVMe SSD
-- NVIDIA GPU with 12–16 GB VRAM, or a comparable accelerator
+- NVIDIA GPU with 12-16 GB VRAM, or a comparable accelerator
 
 This is a practical starting point for coding models, RAG, web research, and several concurrent services.
 
 ### Comfortable local AI workstation
-- 12–16+ CPU cores
+- 12-16+ CPU cores
 - 64 GB RAM
 - 2 TB+ NVMe
 - NVIDIA GPU with 24 GB+ VRAM
@@ -187,7 +265,7 @@ Suitable for larger quantized models, coding workloads, RAG pipelines, and multi
 - 16+ CPU cores
 - 128 GB+ RAM
 - 4 TB+ NVMe/SSD
-- 24–48 GB+ VRAM or multiple GPUs
+- 24-48 GB+ VRAM or multiple GPUs
 - 10 GbE helpful for shared storage and multi-node setups
 
 See `docs/SYSTEM-REQUIREMENTS.md` for workload-oriented sizing.

@@ -33,6 +33,12 @@ Generate strong secrets before exposing services beyond localhost.
 docker compose -f compose/docker-compose.yml up -d
 ```
 
+Or use the Makefile shortcut:
+
+```bash
+make install
+```
+
 Check:
 
 ```bash

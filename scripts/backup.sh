@@ -1,15 +1,41 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Open Local AI Platform - Backup
+# =============================================================================
+# Backs up compose configuration and env template.
+# Docker volumes should be backed up separately using restic, Borg, or snapshots.
+# Supports: Linux, macOS, Windows (Git Bash / WSL)
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_DIR="${ROOT_DIR}/backups/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
-# Export Compose configuration and env template. Application volumes should be backed up
-# using your storage platform, restic, Borg, snapshots, or another tested backup system.
-cp "$ROOT_DIR/.env.example" "$BACKUP_DIR/.env.example"
+# --- Backup compose config ---
 cp -r "$ROOT_DIR/compose" "$BACKUP_DIR/compose"
-cp -r "$ROOT_DIR/config" "$BACKUP_DIR/config"
 
+# --- Backup .env.example if it exists ---
+if [ -f "$ROOT_DIR/.env.example" ]; then
+  cp "$ROOT_DIR/.env.example" "$BACKUP_DIR/.env.example"
+fi
+
+# --- Backup config directory if it exists ---
+if [ -d "$ROOT_DIR/config" ]; then
+  cp -r "$ROOT_DIR/config" "$BACKUP_DIR/config"
+fi
+
+# --- Backup scripts ---
+cp -r "$ROOT_DIR/scripts" "$BACKUP_DIR/scripts"
+
+# --- Backup Makefile ---
+cp "$ROOT_DIR/Makefile" "$BACKUP_DIR/Makefile"
+
+echo ""
 echo "Configuration backup created at: $BACKUP_DIR"
-echo "Remember to back up Docker volumes and databases with application-aware procedures."
+echo ""
+echo "WARNING: This backs up configuration only."
+echo "  For Docker volume data, use application-aware backup tools:"
+echo "    - restic, Borg, or Proxmox/Docker snapshots"
+echo "    - Paperless: docker exec paperless document_exporter ../export"
+echo "    - Ollama models: re-pull from registry or backup /var/lib/docker/volumes/"
+echo ""

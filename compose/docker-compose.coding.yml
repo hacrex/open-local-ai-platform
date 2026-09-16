@@ -9,14 +9,14 @@ services:
     container_name: local-code-server
     restart: unless-stopped
     ports:
-      - "8443:8443"
+      - "${CODE_SERVER_PORT:-8443}:8443"
     environment:
       TZ: ${TZ:-Asia/Kolkata}
       DEFAULT_WORKSPACE: /config/workspace
-      PASSWORD: change-this-password
+      PASSWORD: ${CODE_SERVER_PASSWORD:-change-this-password}
     volumes:
       - code-server:/config
-      - ./../workspace:/config/workspace
+      - ${WORKSPACE_DIR:-./workspace}:/config/workspace
 
 volumes:
   code-server:

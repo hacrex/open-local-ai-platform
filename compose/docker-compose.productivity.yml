@@ -5,6 +5,11 @@ services:
     restart: unless-stopped
     volumes:
       - paperless-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
   paperless-db:
     image: postgres:17-alpine
@@ -16,14 +21,21 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-now}
     volumes:
       - paperless-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperless"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
   paperless:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: paperless
     restart: unless-stopped
     depends_on:
-      - paperless-db
-      - paperless-broker
+      paperless-db:
+        condition: service_healthy
+      paperless-broker:
+        condition: service_healthy
     ports:
       - "${PAPERLESS_PORT:-8000}:8000"
     environment:
@@ -42,6 +54,12 @@ services:
       - paperless-media:/usr/src/paperless/media
       - paperless-export:/usr/src/paperless/export
       - paperless-consume:/usr/src/paperless/consume
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   blinko:
     image: blinkoai/blinko:latest
@@ -51,6 +69,12 @@ services:
       - "${BLINKO_PORT:-1111}:1111"
     volumes:
       - blinko:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:1111"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   karakeep:
     image: ghcr.io/karakeep-app/karakeep:latest
@@ -60,6 +84,12 @@ services:
       - "${KARAKEEP_PORT:-3002}:3000"
     volumes:
       - karakeep:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   pulse:
     image: lucaslorentz/pulse:latest

@@ -30,6 +30,12 @@ services:
       WEBUI_AUTH_TRUSTED_EMAIL_HEADER: ""
     volumes:
       - open-webui:/app/backend/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   searxng:
     image: searxng/searxng:latest
@@ -39,14 +45,22 @@ services:
       - "${SEARXNG_PORT:-8080}:8080"
     volumes:
       - searxng:/etc/searxng
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
 
   perplexica:
     image: itzcodes/perplexica:latest
     container_name: perplexica
     restart: unless-stopped
     depends_on:
-      - searxng
-      - ollama
+      searxng:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     ports:
       - "${PERPLEXICA_PORT:-3001}:3000"
     environment:
@@ -54,6 +68,12 @@ services:
       OLLAMA_API_URL: http://ollama:11434
     volumes:
       - perplexica:/home/perplexica/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   ollama:
