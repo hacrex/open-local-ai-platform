@@ -1,0 +1,22 @@
+services:
+  open-webui:
+    environment:
+      ENABLE_OLLAMA_API: "true"
+      ENABLE_OPENAI_API: "true"
+
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: local-code-server
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      DEFAULT_WORKSPACE: /config/workspace
+      PASSWORD: change-this-password
+    volumes:
+      - code-server:/config
+      - ./../workspace:/config/workspace
+
+volumes:
+  code-server:

@@ -1,0 +1,93 @@
+services:
+  paperless-broker:
+    image: redis:7-alpine
+    container_name: paperless-broker
+    restart: unless-stopped
+    volumes:
+      - paperless-redis:/data
+
+  paperless-db:
+    image: postgres:17-alpine
+    container_name: paperless-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-now}
+    volumes:
+      - paperless-db:/var/lib/postgresql/data
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless
+    restart: unless-stopped
+    depends_on:
+      - paperless-db
+      - paperless-broker
+    ports:
+      - "${PAPERLESS_PORT:-8000}:8000"
+    environment:
+      PAPERLESS_REDIS: redis://paperless-broker:6379
+      PAPERLESS_DBHOST: paperless-db
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: ${POSTGRES_PASSWORD:-change-me-now}
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY:-change-this-to-a-long-random-secret}
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-change-me-now}
+      PAPERLESS_URL: http://localhost:${PAPERLESS_PORT:-8000}
+      PAPERLESS_TIME_ZONE: ${TZ:-Asia/Kolkata}
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - paperless-export:/usr/src/paperless/export
+      - paperless-consume:/usr/src/paperless/consume
+
+  blinko:
+    image: blinkoai/blinko:latest
+    container_name: blinko
+    restart: unless-stopped
+    ports:
+      - "${BLINKO_PORT:-1111}:1111"
+    volumes:
+      - blinko:/app/data
+
+  karakeep:
+    image: ghcr.io/karakeep-app/karakeep:latest
+    container_name: karakeep
+    restart: unless-stopped
+    ports:
+      - "${KARAKEEP_PORT:-3002}:3000"
+    volumes:
+      - karakeep:/data
+
+  pulse:
+    image: lucaslorentz/pulse:latest
+    container_name: pulse
+    restart: unless-stopped
+    ports:
+      - "${PULSE_PORT:-7655}:7655"
+    volumes:
+      - pulse:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  open-notebook:
+    image: ghcr.io/lfnovo/open-notebook:latest
+    container_name: open-notebook
+    restart: unless-stopped
+    ports:
+      - "${OPEN_NOTEBOOK_PORT:-8502}:8502"
+    volumes:
+      - open-notebook:/app/data
+
+volumes:
+  paperless-redis:
+  paperless-db:
+  paperless-data:
+  paperless-media:
+  paperless-export:
+  paperless-consume:
+  blinko:
+  karakeep:
+  pulse:
+  open-notebook:

@@ -1,0 +1,62 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-2}
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "${OPEN_WEBUI_PORT:-3000}:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_AUTH_TRUSTED_EMAIL_HEADER: ""
+    volumes:
+      - open-webui:/app/backend/data
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    ports:
+      - "${SEARXNG_PORT:-8080}:8080"
+    volumes:
+      - searxng:/etc/searxng
+
+  perplexica:
+    image: itzcodes/perplexica:latest
+    container_name: perplexica
+    restart: unless-stopped
+    depends_on:
+      - searxng
+      - ollama
+    ports:
+      - "${PERPLEXICA_PORT:-3001}:3000"
+    environment:
+      SEARXNG_API_URL: http://searxng:8080
+      OLLAMA_API_URL: http://ollama:11434
+    volumes:
+      - perplexica:/home/perplexica/data
+
+volumes:
+  ollama:
+  open-webui:
+  searxng:
+  perplexica:
