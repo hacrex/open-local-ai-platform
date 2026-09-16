@@ -20,13 +20,18 @@ Run capable AI workloads on your own hardware using Docker Compose. The stack is
 - **Blinko** — notes and personal knowledge
 - **Karakeep** — bookmarks and saved web content
 
-### Infrastructure & Home Lab
-- **Pulse** — infrastructure monitoring and AI-assisted analysis
-
 ### Coding
 - **code-server** — browser-based VS Code IDE
-- **Open WebUI** for coding chat and model-driven workflows
-- **Continue** or other OpenAI-compatible IDE clients can connect to Ollama
+- **TabbyML** — self-hosted GitHub Copilot alternative (code completion + chat)
+- **Open Interpreter** — AI code execution in terminal
+
+### Daily Driver
+- **n8n** — workflow automation with 1500+ integrations and AI agents
+- **Khoj** — AI personal assistant with memory and document indexing
+- **LibreChat** — multi-model chat platform (Ollama, OpenAI, Anthropic, Gemini)
+
+### Infrastructure & Home Lab
+- **Pulse** — infrastructure monitoring and AI-assisted analysis
 
 ## Architecture
 
@@ -35,27 +40,27 @@ Run capable AI workloads on your own hardware using Docker Compose. The stack is
                          |      Your Browser     |
                          +----------+-----------+
                                     |
-                       +------------v-------------+
-                       |       Open WebUI         |
-                       |  Chat / RAG / Documents  |
-                       +------------+-------------+
-                                    |
-                      +-------------v--------------+
-                      |        Ollama Runtime     |
-                      | Local LLMs + Embeddings   |
-                      +---+----------+---------+---+
-                          |          |         |
-                 +--------v--+  +----v----+ +--v----------+
-                 | Research  |  | Coding  | | Knowledge   |
-                 |Perplexica |  | IDE/API | | RAG Apps    |
-                 +-----+-----+  +----+----+ +------+------+
-                       |             |             |
-                 +-----v-----+  +----v----+  +-----v------+
-                 |  SearXNG  |  | Git/IDE |  | Docs/Notes |
-                 +-----------+  +---------+  +------------+
+              +---------------------+---------------------+
+              |                     |                     |
+     +--------v--------+  +--------v--------+  +---------v--------+
+     |   Open WebUI    |  |    LibreChat    |  |     TabbyML      |
+     |   Chat / RAG    |  |  Multi-model    |  |  Code Completion |
+     +--------+--------+  +--------+--------+  +---------+--------+
+              |                     |                     |
+              +----------+----------+----------+----------+
+                         |                     |
+                +--------v--------+  +---------v--------+
+                |  Ollama Runtime |  |   Perplexica     |
+                | Local LLMs      |  |  AI Search       |
+                +---+------+------+  +---+--------------+
+                    |      |             |
+           +--------v--+ +-v--------+ +--v---------+
+           |  SearXNG  | | n8n      | | Khoj       |
+           |  Search   | | Workflows| | Assistant  |
+           +-----------+ +----------+ +------------+
 
-          Optional services: Paperless, Open Notebook, Blinko,
-          Karakeep, Pulse
+  Optional: Paperless, Blinko, Karakeep, Pulse,
+  Open Notebook, code-server, Open Interpreter
 ```
 
 ## Repository layout
@@ -64,27 +69,36 @@ Run capable AI workloads on your own hardware using Docker Compose. The stack is
 open-local-ai-platform/
 ├── README.md
 ├── LICENSE
-├── Makefile
+├── Makefile              # Linux/macOS commands
+├── run.ps1               # Windows PowerShell commands
+├── run.bat               # Windows double-click quick start
 ├── .env.example
 ├── .gitignore
 ├── .editorconfig
 ├── compose/
 │   ├── docker-compose.yml
 │   ├── docker-compose.coding.yml
-│   └── docker-compose.productivity.yml
+│   ├── docker-compose.productivity.yml
+│   ├── docker-compose.vibecoding.yml
+│   └── docker-compose.daily.yml
 ├── config/
 │   └── open-webui/
 ├── docs/
 │   ├── ARCHITECTURE.md
-│   ├── INSTALL.md
-│   ├── SYSTEM-REQUIREMENTS.md
+│   ├── BACKUP.md
 │   ├── CODING.md
+│   ├── INSTALL.md
 │   ├── MODELS.md
+│   ├── OPERATIONS.md
+│   ├── REVERSE-PROXY.md
+│   ├── ROADMAP.md
 │   ├── SECURITY.md
 │   ├── STORAGE.md
-│   ├── OPERATIONS.md
-│   ├── ROADMAP.md
-│   └── TROUBLESHOOTING.md
+│   ├── SYSTEM-REQUIREMENTS.md
+│   ├── SYSTEMD.md
+│   ├── TROUBLESHOOTING.md
+│   ├── VIBECODING.md
+│   └── WINDOWS.md
 ├── scripts/
 │   ├── install.sh
 │   ├── update.sh
@@ -141,64 +155,97 @@ For coding, see `docs/CODING.md`.
 - Perplexica: `http://localhost:3001`
 - SearXNG: `http://localhost:8080`
 
-## Makefile
+## Commands
 
-Run `make help` to see all available targets:
+### Linux / macOS
+
+```bash
+make help    # Show all available commands
+```
 
 ```
   up                    Start core services
   down                  Stop and remove core containers
-  stop                  Stop core containers without removing
-  logs                  Tail core service logs
-  ps                    Show running containers
-  pull                  Pull latest images for core services
-  validate              Validate all compose files
   coding                Start core + coding overlay
   productivity          Start core + productivity overlay
+  vibecoding            Start core + vibecoding overlay
+  daily                 Start core + daily driver overlay
+  all                   Start all overlays
   install               Run the installer
   update                Pull latest images and recreate containers
-  backup                Back up compose config and env template
-  health                Check health of all services
-  lint                  Lint shell scripts (requires shellcheck)
-  compose-lint          Lint compose files
+  health                Check health of running services
 ```
 
-## Compose profiles
+### Windows
 
-The repo deliberately separates the platform into layers.
-
-### Core
-
-```bash
-docker compose -f compose/docker-compose.yml up -d
-# or
-make up
+```powershell
+.\run.ps1 help    # Show all available commands
 ```
 
-### Core + coding helper services
-
-```bash
-docker compose -f compose/docker-compose.yml -f compose/docker-compose.coding.yml up -d
-# or
-make coding
+```powershell
+.\run.ps1 up              # Start core
+.\run.ps1 all             # Start everything
+.\run.ps1 down            # Stop everything
+.\run.ps1 health          # Check health
 ```
 
-### Productivity services
+Or double-click `run.bat` for a menu.
 
-```bash
-docker compose -f compose/docker-compose.yml -f compose/docker-compose.productivity.yml up -d
-# or
-make productivity
+## Compose overlays
+
+The repo separates the platform into modular layers. Mix and match based on your hardware.
+
+| Overlay | Linux | Windows | Services added |
+|---------|-------|---------|----------------|
+| Core | `make up` | `.\run.ps1 up` | Ollama, Open WebUI, SearXNG, Perplexica |
+| Coding | `make coding` | `.\run.ps1 coding` | code-server (browser VS Code) |
+| Vibecoding | `make vibecoding` | `.\run.ps1 vibecoding` | TabbyML, Open Interpreter |
+| Productivity | `make productivity` | `.\run.ps1 productivity` | Paperless, Blinko, Karakeep, Pulse, Open Notebook |
+| Daily | `make daily` | `.\run.ps1 daily` | n8n, Khoj, LibreChat |
+| All | `make all` | `.\run.ps1 all` | Everything |
+
+## Hardware recommendations (32GB RAM + 2GB GPU)
+
+| Overlay | RAM needed | Runs well? |
+|---------|-----------|------------|
+| Core only | ~17G | Yes, comfortably |
+| Core + coding | ~19G | Yes |
+| Core + vibecoding | ~27G | Yes (TabbyML needs 8G) |
+| Core + productivity | ~29G | Tight, reduce Ollama limit |
+| Core + daily | ~23G | Yes |
+| Everything | ~40G+ | Reduce limits, run selectively |
+
+For 32GB RAM, use `OLLAMA_MEMORY_LIMIT=4G` and run overlays selectively.
+
+## Installation
+
+### Windows (Docker Desktop)
+
+1. Install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/) (enable WSL 2 backend)
+2. Clone the repo:
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/open-local-ai-platform.git
+cd open-local-ai-platform
 ```
 
-Run only what your hardware can comfortably support.
+3. Start everything:
 
-## Linux installation
+```powershell
+# Option A: PowerShell
+.\run.ps1 install
 
-### Prerequisites
+# Option B: Double-click run.bat
+```
+
+4. Open `http://localhost:3000`
+
+See `docs/WINDOWS.md` for detailed Windows setup, GPU support, and troubleshooting.
+
+### Linux (Docker Engine)
 
 ```bash
-# Docker Engine (Ubuntu/Debian)
+# Install Docker Engine (Ubuntu/Debian)
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -212,10 +259,9 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plu
 sudo usermod -aG docker $USER
 ```
 
-### NVIDIA GPU support (optional)
+#### NVIDIA GPU support (optional)
 
 ```bash
-# Install NVIDIA Container Toolkit
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
   sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
@@ -226,7 +272,7 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-### Quick install
+#### Quick install
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/open-local-ai-platform.git
@@ -243,7 +289,7 @@ make install
 - Linux host recommended
 - Docker Engine + Compose v2
 
-Usable for small quantized models, embeddings, Open WebUI, and lightweight services. Expect slower generation and limited concurrency.
+Usable for small quantized models, embeddings, Open WebUI, and lightweight services.
 
 ### Recommended developer workstation
 - 8+ CPU cores
@@ -273,6 +319,23 @@ See `docs/SYSTEM-REQUIREMENTS.md` for workload-oriented sizing.
 ## Privacy model
 
 The default architecture keeps model inference on your machine. However, external web search and any third-party APIs you configure can send data outside your environment. Review each service and set network access according to your threat model.
+
+## Additional documentation
+
+- `docs/ARCHITECTURE.md` — system design and service interactions
+- `docs/INSTALL.md` — detailed installation guide
+- `docs/WINDOWS.md` — Windows Docker Desktop setup and troubleshooting
+- `docs/CODING.md` — coding setup with Continue, Aider, and IDE clients
+- `docs/VIBECODING.md` — TabbyML and Open Interpreter setup
+- `docs/MODELS.md` — model selection guidance
+- `docs/SECURITY.md` — threat model and security rules
+- `docs/STORAGE.md` — recommended directory layout
+- `docs/OPERATIONS.md` — day-to-day operations guide
+- `docs/BACKUP.md` — backup and restore procedures
+- `docs/TROUBLESHOOTING.md` — common issues and fixes
+- `docs/SYSTEMD.md` — auto-start on Linux boot
+- `docs/REVERSE-PROXY.md` — TLS and remote access setup
+- `docs/ROADMAP.md` — development roadmap
 
 ## License
 

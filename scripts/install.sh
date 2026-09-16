@@ -5,6 +5,8 @@
 # Supports: Linux, macOS, Windows (Git Bash / WSL)
 set -euo pipefail
 
+trap 'echo "ERROR on line $LINENO. Installation failed." >&2' ERR
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
@@ -49,11 +51,14 @@ docker compose -f compose/docker-compose.yml config >/dev/null 2>&1 || {
 echo "Starting core services..."
 docker compose -f compose/docker-compose.yml up -d
 
-# --- Source .env for variable expansion ---
-set -a
-# shellcheck disable=SC1091
-[ -f .env ] && source .env
-set +a
+# --- Source .env for variable expansion (individual vars only) ---
+if [ -f .env ]; then
+  while IFS='=' read -r key value; do
+    key="$(echo "$key" | xargs)"
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    export "$key=$value" 2>/dev/null || true
+  done < .env
+fi
 
 echo ""
 echo "Done! Services are starting up."

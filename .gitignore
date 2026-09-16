@@ -14,6 +14,10 @@ data/
 .DS_Store
 Thumbs.db
 desktop.ini
+*.lnk
+
+# Windows Docker Desktop
+.docker/
 
 # Editor files
 *.swp
@@ -25,3 +29,6 @@ desktop.ini
 # Logs
 *.log
 logs/
+
+# PowerShell transcripts
+*.ps1xml

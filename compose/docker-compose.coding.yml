@@ -6,7 +6,7 @@ services:
 
   code-server:
     image: lscr.io/linuxserver/code-server:latest
-    container_name: local-code-server
+    container_name: code-server
     restart: unless-stopped
     ports:
       - "${CODE_SERVER_PORT:-8443}:8443"
@@ -17,6 +17,23 @@ services:
     volumes:
       - code-server:/config
       - ${WORKSPACE_DIR:-./workspace}:/config/workspace
+    networks:
+      - inference
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   code-server:

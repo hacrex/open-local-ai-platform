@@ -1,0 +1,76 @@
+services:
+  # ===========================================================================
+  # TabbyML - Self-hosted GitHub Copilot alternative
+  # Code completion, chat, and repository indexing
+  # First run: visit UI, create account, configure model in admin settings
+  # ===========================================================================
+  tabby:
+    image: tabbyml/tabby:latest
+    container_name: tabby
+    restart: unless-stopped
+    ports:
+      - "${TABBY_PORT:-8080}:8080"
+    environment:
+      TABBY_CONFIG: /config/config.toml
+    volumes:
+      - tabby-data:/data
+      - ${WORKSPACE_DIR:-./workspace}:/workspace:ro
+    networks:
+      - inference
+    deploy:
+      resources:
+        limits:
+          memory: ${TABBY_MEMORY_LIMIT:-8G}
+        reservations:
+          memory: 2G
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ===========================================================================
+  # Open Interpreter - AI code execution in terminal
+  # Connects to Ollama for local model inference
+  # Usage: docker exec -it open-interpreter interpreter
+  # ===========================================================================
+  open-interpreter:
+    image: python:3.12-slim
+    container_name: open-interpreter
+    restart: unless-stopped
+    working_dir: /workspace
+    entrypoint: ["sh", "-c", "pip install --quiet open-interpreter && interpreter --api_base http://ollama:11434/v1 --model ollama/codellama:7b-code"]
+    environment:
+      OPENAI_API_BASE: http://ollama:11434/v1
+    volumes:
+      - ${WORKSPACE_DIR:-./workspace}:/workspace
+    networks:
+      - inference
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  tabby-data:

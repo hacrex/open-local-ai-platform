@@ -10,6 +10,30 @@ services:
       OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-2}
     volumes:
       - ollama:/root/.ollama
+    networks:
+      - inference
+      - search
+    deploy:
+      resources:
+        limits:
+          memory: ${OLLAMA_MEMORY_LIMIT:-8G}
+        reservations:
+          memory: ${OLLAMA_MEMORY_RESERVE:-2G}
+          devices:
+            - driver: nvidia
+              count: ${NVIDIA_DEVICE_COUNT:-0}
+              capabilities: [gpu]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s
@@ -30,6 +54,23 @@ services:
       WEBUI_AUTH_TRUSTED_EMAIL_HEADER: ""
     volumes:
       - open-webui:/app/backend/data
+    networks:
+      - inference
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080"]
       interval: 30s
@@ -45,6 +86,23 @@ services:
       - "${SEARXNG_PORT:-8080}:8080"
     volumes:
       - searxng:/etc/searxng
+    networks:
+      - search
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080"]
       interval: 30s
@@ -68,12 +126,36 @@ services:
       OLLAMA_API_URL: http://ollama:11434
     volumes:
       - perplexica:/home/perplexica/data
+    networks:
+      - inference
+      - search
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+
+networks:
+  inference:
+    driver: bridge
+  search:
+    driver: bridge
 
 volumes:
   ollama:

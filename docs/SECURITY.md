@@ -11,7 +11,7 @@ This platform combines private data, powerful models, network access, code execu
 - Put internet-facing access behind TLS and authentication.
 - Prefer VPN/Tailscale/WireGuard for remote access.
 - Never mount `/` into AI containers.
-- Avoid mounting `/var/run/docker.sock` unless the service requires it.
+- Avoid mounting `/var/run/docker.sock` unless the service requires it. Pulse uses it for Docker monitoring (read-only).
 - Keep Docker images updated and review image provenance.
 - Scan images where practical.
 - Back up application data separately from model caches.
